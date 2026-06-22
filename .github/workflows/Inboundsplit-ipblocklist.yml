@@ -1,0 +1,35 @@
+name: Split and Commit File
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 * * * *' # ทำงานทุกวันตอนเที่ยงคืน (ตามเวลา UTC)
+
+permissions:
+  contents: write
+
+jobs:
+  split_and_commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download file
+        run: |
+          curl -o inbound.txt https://raw.githubusercontent.com/bitwire-it/ipblocklist/refs/heads/main/inbound.txt
+
+      - name: Split and commit
+        run: |
+          mkdir -p output
+          split -l 100000 --numeric-suffixes inbound.txt output/ipInboundBlocklist_part_
+
+      - name: Commit files
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add output/
+          git commit -m "Add new parts from inbound.txt" || echo "No changes to commit"
+          git push
